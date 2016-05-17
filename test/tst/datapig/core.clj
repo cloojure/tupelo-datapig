@@ -1,11 +1,11 @@
-(ns tst.loader.core
+(ns tst.datapig.core
   (:require [schema.core            :as s]
             [clojure.java.jdbc      :as jdbc]
             [java-jdbc.ddl          :as ddl]
             [java-jdbc.sql          :as sql]
   )
   (:use clojure.test 
-        loader.core
+        datapig.core
         tupelo.core))
 
 (deftest pg-basic-t

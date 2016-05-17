@@ -1,4 +1,4 @@
-(defproject loader "0.1.0-SNAPSHOT"
+(defproject datapig "0.1.0-SNAPSHOT"
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"

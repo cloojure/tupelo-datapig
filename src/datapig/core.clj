@@ -1,4 +1,4 @@
-(ns loader.core
+(ns datapig.core
   (:require
     [cheshire.core :as cc]
     [clojure.java.jdbc :as jdbc]
@@ -25,8 +25,8 @@
     ;; Not needed for a non-secure local database...
     ;;   :user      "bilbo"
     ;;   :password  "secret"
-    :user      "alan"
-    :password  "secret"
+  ; :user      "alan"
+  ; :password  "secret"
     } )
 
 (defn drop-tables []
