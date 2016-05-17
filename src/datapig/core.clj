@@ -33,7 +33,7 @@
   (println "Creating table:  dummy")
   (jdbc/db-do-commands db-spec
     (ddl/create-table :dummy
-      [:name :text "not null"]
+      [:name :text "PRIMARY KEY"]
       [:age :int "not null"]))
   (jdbc/db-do-commands db-spec "create index dummy__name on dummy (name) ;"))
 
@@ -41,33 +41,9 @@
   (drop-tables)
   (create-tables)
   (jdbc/db-do-commands db-spec (format "insert into dummy (name, age) values ( '%s', '%d' );" "joe"   22) )
-  (jdbc/db-do-commands db-spec (format "insert into dummy (name, age) values ( '%s', '%d' );" "mary"  11) )
+  (jdbc/with-db-transaction [db-conn db-spec]           ; or (jdbc/with-db-connection [db-conn db-spec] ...)
+    (jdbc/db-do-commands db-conn (format "insert into dummy (name, age) values ( '%s', '%d' );" "mary"  11) ))
 )
-
-(comment
-  (defn data-load
-    [file-spec]                                             ; a filename or File obj
-    (let [engagements (json->clj (slurp file-spec))]
-      (jdbc/with-db-transaction [db-conn db-spec]           ; or (jdbc/with-db-connection [db-conn db-spec] ...)
-        (doseq [engagement engagements]
-          (let
-            (jdbc/insert! db-conn :engagements engagement-data)
-
-            (let [engagement-json (filter-text (escape-single-quote (clj->json engagement)))
-                  insert-sql      (format "insert into engagements_json (chatid, json_raw) values ( '%s', '%s'::jsonb );" chatID engagement-json)
-                  ]
-              (jdbc/db-do-commands db-spec insert-sql))     ; #todo need pig-squeal
-
-            (let [agents (grab :agents metaData)]
-              (doseq [agent agents]
-                (let [agt-map (glue {:chatID chatID}
-                                (select-keys agent [:agentID :name :alias])
-                                ;  { :AgentLocation   (only (fetch-in agent [:attributes :AgentLocation]))
-                                ;    :Team            (only (fetch-in agent [:attributes :Team])) }
-                                )
-                      ]
-                  (jdbc/insert! db-conn :agents agt-map))))
-            ))))))
 
 (defn -main []
   (println "-main enter")
@@ -95,55 +71,10 @@
   (spyx db-conn)
   (spyx (.toString db-conn))
 
-  (defn create-engagements-json-tbl []
-    (println "Creating table:  engagements-json")
-    (jdbc/db-do-commands db-spec
-      (ddl/create-table :engagements_json                   ; #todo need pig-squeal to automate this
-        [:chatID :text "PRIMARY KEY"]                       ; #todo need pig-squeal to automate this
-        [:json_raw :jsonb]                                  ; #todo need pig-squeal to automate this
-        ))
-    (jdbc/db-do-commands db-spec
-      "create index engagements_json__chatID    on engagements_json             ( chatID  ) ;"
-      "create index engagements_json__json_raw  on engagements_json USING GIN   ( json_raw  ) ;"
-      ))
-
-  (defn create-engagements-tbl []
-    (println "Creating table:  engagements")
-    (jdbc/db-do-commands db-spec
-      (ddl/create-table :engagements
-        ; metaData
-        [:chatID :text "PRIMARY KEY"]
-        [:chatEnd :text])))
-
-
-
-  (defn create-agents-tbl []
-    (println "Creating table:  agents")
-    (jdbc/db-do-commands db-spec
-      (ddl/create-table :agents
-        [:chatID :text]
-        [:agentID :text]
-        [:name :text]
-        [:alias "text"]
-        ; [:AgentLocation    :text] ; #todo multi-valued
-        ; [:Team             :text] ; #todo multi-valued
-        )))
-
-
-  (defn create-transcript-tbl []
-    (println "Creating table:  transcript")
-    (jdbc/db-do-commands db-spec
-      (ddl/create-table :transcript
-        ; required keys
-        [:chatID :text "not null"]
-        [:type :text "not null"]
-        [:time :text "not null"]
-        [:timeInMlSec :bigint "not null"]
-        )))
+  (format "insert into engagements_json (chatid, json_raw) values ( '%s', '%s'::jsonb );" chatID engagement-json)
 
   (defn escape-single-quote
     [arg-str]
     (.replace arg-str "'" "''"))
-
 )
 
