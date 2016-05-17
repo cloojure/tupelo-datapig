@@ -15,7 +15,7 @@
     [prismatic/schema                 "1.1.1"]
     [tupelo                           "0.1.71"]
   ]
-  :main ^:skip-aot loader.core
+  :main ^:skip-aot datapig.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}}
 ; :resource-paths   [ "local-jars/*" ]

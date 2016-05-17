@@ -8,15 +8,10 @@
     [java-jdbc.sql :as sql]
     [schema.core :as s]
     [tupelo.misc :as tm]
-    [tupelo.schema :as ts]
-  )
-  (:use tupelo.core
-        criterium.core)
-  (:import  com.mchange.v2.c3p0.ComboPooledDataSource
-  )
+    [tupelo.schema :as ts] )
+  (:use tupelo.core )
+  (:import  com.mchange.v2.c3p0.ComboPooledDataSource )
 )
-
-(def data-files-limit 99)
 
 (def db-spec
   { :classname    "org.postgresql.Driver"
@@ -25,8 +20,8 @@
     ;; Not needed for a non-secure local database...
     ;;   :user      "bilbo"
     ;;   :password  "secret"
-  ; :user      "alan"
-  ; :password  "secret"
+    :user      "alan"
+    :password  "secret"
     } )
 
 (defn drop-tables []
@@ -45,15 +40,9 @@
 (defn load-pg []
   (drop-tables)
   (create-tables)
-  (let [data-dir          "./loader-data" 
-        files             (.listFiles (clojure.java.io/file data-dir)) 
-        files-to-use      (take data-files-limit files)
-  ]
-    (println (format "Loading data (%d files)" (count files-to-use)))
-    (tm/dots-config! {:decimation 100} )
-    (tm/with-dots
-      (doseq [file files-to-use]
-        (data-load file)))))
+  (jdbc/db-do-commands db-spec (format "insert into dummy (name, age) values ( '%s', '%d' );" "joe"   22) )
+  (jdbc/db-do-commands db-spec (format "insert into dummy (name, age) values ( '%s', '%d' );" "mary"  11) )
+)
 
 (comment
   (defn data-load
@@ -61,15 +50,7 @@
     (let [engagements (json->clj (slurp file-spec))]
       (jdbc/with-db-transaction [db-conn db-spec]           ; or (jdbc/with-db-connection [db-conn db-spec] ...)
         (doseq [engagement engagements]
-          (let [metaData        (glue (sorted-map) (grab :metaData engagement))
-                metrics         (grab :metrics engagement)
-                chatID          (grab :chatID metaData)
-                metaData-keep   (select-keys metaData [:chatID
-                                                       :chatEnd
-                                                       :pageName
-                                                       ])
-                engagement-data (glue metaData-keep metrics-keep)
-                ]
+          (let
             (jdbc/insert! db-conn :engagements engagement-data)
 
             (let [engagement-json (filter-text (escape-single-quote (clj->json engagement)))
