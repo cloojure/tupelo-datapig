@@ -20,8 +20,8 @@
     ;; Not needed for a non-secure local database...
     ;;   :user      "bilbo"
     ;;   :password  "secret"
-    :user      "alan"
-    :password  "secret"
+;   :user      "alan"
+;   :password  "secret"
     } )
 
 (defn drop-tables []
