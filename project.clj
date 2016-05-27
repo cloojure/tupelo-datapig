@@ -9,7 +9,7 @@
     [criterium                        "0.4.4"]
     [java-jdbc/dsl                    "0.1.3"]
     [org.apache.solr/solr-solrj       "6.0.0"]
-    [org.clojure/clojure              "1.8.0"]
+    [org.clojure/clojure              "1.9.0-alpha3"]
     [org.clojure/java.jdbc            "0.6.1"] 
     [org.postgresql/postgresql        "9.4.1208"]
     [prismatic/schema                 "1.1.1"]

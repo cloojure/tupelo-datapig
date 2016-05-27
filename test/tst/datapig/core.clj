@@ -1,14 +1,25 @@
 (ns tst.datapig.core
-  (:require [schema.core            :as s]
-            [clojure.java.jdbc      :as jdbc]
-            [java-jdbc.ddl          :as ddl]
-            [java-jdbc.sql          :as sql]
-  )
-  (:use clojure.test 
-        datapig.core
-        tupelo.core))
+  (:use datapig.core
+        clojure.test
+        tupelo.core)
+  (:require
+    [clojure.java.jdbc :as jdbc]
+    [clojure.string :as str]
+    [clojure.test.check.clojure-test :as tst]
+    [clojure.test.check.generators :as gen]
+    [clojure.test.check.properties :as prop]
+    [java-jdbc.ddl :as ddl]
+    [java-jdbc.sql :as sql]
+    [tupelo.misc :as tm]
+  ))
 
-(deftest pg-basic-t
+(spyx *clojure-version*)
+
+(deftest t-01
+  (is true)
+)
+
+#_(deftest pg-basic-t
   (prn 'pg-basic)
   (jdbc/db-do-commands db-spec "drop table if exists langs" )
   (jdbc/db-do-commands db-spec 
@@ -24,7 +35,7 @@
 
   )
 
-(deftest pg-basic-v
+#_(deftest pg-basic-v
   (when false
     (spyx (jdbc/db-do-commands db-spec "drop table if exists langs" ))
     (spyx (jdbc/db-do-commands db-spec 
@@ -38,7 +49,7 @@
     (spyx (jdbc/query db-spec 
             (spyx (sql/select * :langs (sql/where {:name "Clojure"} )))))))
 
-(deftest data-load-validate-t
+#_(deftest data-load-validate-t
   (let [filename      "sample.json"
         sampleData    (forv [engagement (json->clj (slurp filename)) ]
                         (update engagement :metaData #(into (sorted-map) %))) ]
@@ -49,7 +60,6 @@
         (catch Exception ex (do (ppr engagement) (spyx ex) (System/exit 1)))))
     (newline)))
 
-; #todo migrate to testing schema
 #_(deftest load-1-t
   (create-tables)
   (let [filename "sample.json" ]
