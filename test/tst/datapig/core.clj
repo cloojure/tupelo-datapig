@@ -63,6 +63,7 @@
     (spyx (jdbc/query *conn* ["select * from attr__name;"]))
     (spyx (jdbc/query *conn* ["select * from eid_seq;"]))
     (spyx (create-entity))
+    (spyx (create-entity))
     (catch Exception ex
       (do (spyx ex)
           (spyx (.getNextException ex))
