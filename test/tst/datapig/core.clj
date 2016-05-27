@@ -57,13 +57,13 @@
     (create-table :dummy)
     (let [result (into #{} (jdbc/query *conn* ["select * from dummy;"]))]
       (spyx result)
-      (is (= result #{{:value "joe"   :value2 22}
-                      {:value "mary"  :value2 11} })))
+      (is (= result #{{:value "joe"   :value2 11}
+                      {:value "mary"  :value2 22} })))
     (create-attribute :name :string "")
     (spyx (jdbc/query *conn* ["select * from attr__name;"]))
     (spyx (jdbc/query *conn* ["select * from eid_seq;"]))
-    (spyx (create-entity))
-    (spyx (create-entity))
+    (create-entity)
+    (create-entity)
     (catch Exception ex
       (do (spyx ex)
           (spyx (.getNextException ex))

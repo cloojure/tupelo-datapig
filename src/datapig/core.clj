@@ -49,13 +49,14 @@
             (format "create index %s__value on dummy (value) ;" tbl-name)))
   ))
 
-(defn create-entity []
+(defn create-entity
+  "Creates a new entity and returns the EID"
+  []
   (let [eid (-> (jdbc/query *conn* ["select nextval('eid_seq');"])
               (only)
               (:nextval))]
-    (spyx eid)
-    (spyx (jdbc/db-do-commands *conn* (format "insert into entity (eid) values (%d);" eid)))
-  ))
+    (jdbc/db-do-commands *conn* (format "insert into entity (eid) values (%d);" eid))
+    (spy :msg "create-entity:" eid)))
 
 (defn drop-table [name-kw]
   (let [name-str (name name-kw)]
@@ -71,9 +72,9 @@
         [:value2 :int "not null"]))
     (spyx (jdbc/db-do-commands *conn*
             (format "create index %s__value on dummy (value) ;" name-str)))
-    (spyx (jdbc/db-do-commands *conn* (format "insert into dummy (value, value2) values ( '%s', '%d' );" "joe" 22)))
+    (spyx (jdbc/db-do-commands *conn* (format "insert into dummy (value, value2) values ( '%s', '%d' );" "joe" 11)))
     (spyx (jdbc/with-db-transaction [db-tx *conn*]       ; or (jdbc/with-db-connection [db-conn db-spec] ...)
-            (jdbc/db-do-commands db-tx (format "insert into dummy (value, value2) values ( '%s', '%d' );" "mary" 11))))
+            (jdbc/db-do-commands db-tx (format "insert into dummy (value, value2) values ( '%s', '%d' );" "mary" 22))))
   ))
 
 
