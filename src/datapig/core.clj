@@ -23,7 +23,8 @@
   (jdbc/db-do-commands *conn* (format "create schema %s" ns-name))
   (jdbc/db-do-commands *conn* (format "set search_path to %s" ns-name))
   (jdbc/db-do-commands *conn* "create sequence eid_seq")
-  (ddl/create-table :entity [:eid :int8 "PRIMARY KEY"] )
+  (jdbc/db-do-commands *conn*
+    (ddl/create-table :entity [:eid :int8 "PRIMARY KEY"]))
 ) ; #todo split out later
 
 (def type-map
@@ -40,14 +41,20 @@
         db-type      (type-map -type)
         props-str -props ; #todo fix
   ]
-    (spyx tbl-name)
-    (spyx db-type)
     (spyx (jdbc/db-do-commands *conn*
             (ddl/create-table tbl-name
               [:eid :int8 "PRIMARY KEY"]
               [:value db-type "not null"])))
     (spyx (jdbc/db-do-commands *conn*
             (format "create index %s__value on dummy (value) ;" tbl-name)))
+  ))
+
+(defn create-entity []
+  (let [eid (-> (jdbc/query *conn* ["select nextval('eid_seq');"])
+              (only)
+              (:nextval))]
+    (spyx eid)
+    (spyx (jdbc/db-do-commands *conn* (format "insert into entity (eid) values (%d);" eid)))
   ))
 
 (defn drop-table [name-kw]
