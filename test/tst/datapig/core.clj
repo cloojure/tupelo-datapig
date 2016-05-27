@@ -14,12 +14,46 @@
   ))
 
 (spyx *clojure-version*)
+(set! *warn-on-reflection* false)
+(set! *print-length* nil)
+
+(def datomic-uri "datomic:mem://tst.bond")      ; the URI for our test db
+
+(def schema-name "unit_test")
+(def db-spec
+  { :classname    "org.postgresql.Driver"
+   :subprotocol  "postgresql"
+   :subname      "//localhost:5432/alan"    ; database="alan"
+   ;; Not needed for a non-secure local database...
+   ;;   :user      "bilbo"
+   ;;   :password  "secret"
+   } )
+
+;----------------------------------------------------------------------------
+; clojure.test fixture: setup & teardown for each test
+(use-fixtures :each
+  (fn setup-execute-teardown
+    [tst-fn]
+    ; setup ----------------------------------------------------------
+    (jdbc/with-db-connection [conn db-spec] ; create & save a connection to the db
+      (binding [*conn* conn]  ; Bind connection to dynamic var
+        (try
+          (jdbc/db-do-commands *conn* (format "drop schema if exists %s cascade" schema-name))
+          (jdbc/db-do-commands *conn* (format "create schema %s" schema-name))
+          (jdbc/db-do-commands *conn* (format "set search_path to %s" schema-name))
+          ; execute --------------------------------------------------------
+          (tst-fn)
+          ; teardown -------------------------------------------------------
+          (finally
+          ; (jdbc/db-do-commands *conn* (format "drop schema if exists %s cascade" schema-name))
+          ))))))
+;----------------------------------------------------------------------------
+
 
 (deftest t-01
-  (spyx (drop-table :dummy))
   (try
+    (spyx (drop-table :dummy))
     (create-table :dummy)
-    (drop-table :dummy)
     (catch Exception ex
       (do (spyx ex)
           (spyx (.getNextException ex))
