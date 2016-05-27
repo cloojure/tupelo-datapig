@@ -21,8 +21,34 @@
 
 (defn create-namespace [ns-name]
   (jdbc/db-do-commands *conn* (format "create schema %s" ns-name))
-  (jdbc/db-do-commands *conn* (format "set search_path to %s" ns-name))) ; split out later
+  (jdbc/db-do-commands *conn* (format "set search_path to %s" ns-name))
+  (jdbc/db-do-commands *conn* "create sequence eid_seq")
+  (ddl/create-table :entity [:eid :int8 "PRIMARY KEY"] )
+) ; #todo split out later
 
+(def type-map
+  {:integer :int8
+   :string  :text
+   :double  :float8
+   :decimal :numeric
+   :numeric :numeric} )
+
+(defn create-attribute
+  [-attr -type -props]
+  ; #todo validate name, type, props
+  (let [tbl-name  (str "attr__" (name -attr))
+        db-type      (type-map -type)
+        props-str -props ; #todo fix
+  ]
+    (spyx tbl-name)
+    (spyx db-type)
+    (spyx (jdbc/db-do-commands *conn*
+            (ddl/create-table tbl-name
+              [:eid :int8 "PRIMARY KEY"]
+              [:value db-type "not null"])))
+    (spyx (jdbc/db-do-commands *conn*
+            (format "create index %s__value on dummy (value) ;" tbl-name)))
+  ))
 
 (defn drop-table [name-kw]
   (let [name-str (name name-kw)]

@@ -59,6 +59,7 @@
       (spyx result)
       (is (= result #{{:value "joe"   :value2 22}
                       {:value "mary"  :value2 11} })))
+    (create-attribute :name :string "")
     (catch Exception ex
       (do (spyx ex)
           (spyx (.getNextException ex))
