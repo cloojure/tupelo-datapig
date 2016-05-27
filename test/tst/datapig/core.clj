@@ -19,14 +19,16 @@
 
 (def datomic-uri "datomic:mem://tst.bond")      ; the URI for our test db
 
-(def schema-name "unit_test")
+(def testing-namespace "datapig")
 (def db-spec
   { :classname    "org.postgresql.Driver"
    :subprotocol  "postgresql"
    :subname      "//localhost:5432/alan"    ; database="alan"
-   ;; Not needed for a non-secure local database...
-   ;;   :user      "bilbo"
-   ;;   :password  "secret"
+   ;    :subname      "//localhost:5432/alan"    ; database="alan"
+
+   ; Not needed for a non-secure local database...
+   ;    :user      "bilbo"
+   ;    :password  "secret"
    } )
 
 ;----------------------------------------------------------------------------
@@ -38,14 +40,13 @@
     (jdbc/with-db-connection [conn db-spec] ; create & save a connection to the db
       (binding [*conn* conn]  ; Bind connection to dynamic var
         (try
-          (jdbc/db-do-commands *conn* (format "drop schema if exists %s cascade" schema-name))
-          (jdbc/db-do-commands *conn* (format "create schema %s" schema-name))
-          (jdbc/db-do-commands *conn* (format "set search_path to %s" schema-name))
+          (drop-namespace-force testing-namespace)
+          (create-namespace testing-namespace)
           ; execute --------------------------------------------------------
           (tst-fn)
           ; teardown -------------------------------------------------------
           (finally
-          ; (jdbc/db-do-commands *conn* (format "drop schema if exists %s cascade" schema-name))
+          ; (drop-namespace-force testing-namespace)
           ))))))
 ;----------------------------------------------------------------------------
 
@@ -54,6 +55,10 @@
   (try
     (spyx (drop-table :dummy))
     (create-table :dummy)
+    (let [result (into #{} (jdbc/query *conn* ["select * from dummy;"]))]
+      (spyx result)
+      (is (= result #{{:value "joe"   :value2 22}
+                      {:value "mary"  :value2 11} })))
     (catch Exception ex
       (do (spyx ex)
           (spyx (.getNextException ex))

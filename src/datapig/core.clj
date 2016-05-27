@@ -13,6 +13,17 @@
 )
 
 (def ^:dynamic *conn*)                  ; dynamic var to hold the db connection
+
+(defn drop-namespace [ns-name]
+  (jdbc/db-do-commands *conn* (format "drop schema if exists %s" ns-name)))
+(defn drop-namespace-force [ns-name]
+  (jdbc/db-do-commands *conn* (format "drop schema if exists %s cascade" ns-name)))
+
+(defn create-namespace [ns-name]
+  (jdbc/db-do-commands *conn* (format "create schema %s" ns-name))
+  (jdbc/db-do-commands *conn* (format "set search_path to %s" ns-name))) ; split out later
+
+
 (defn drop-table [name-kw]
   (let [name-str (name name-kw)]
     (println "Dropping table:" name-str)
@@ -30,7 +41,6 @@
     (spyx (jdbc/db-do-commands *conn* (format "insert into dummy (value, value2) values ( '%s', '%d' );" "joe" 22)))
     (spyx (jdbc/with-db-transaction [db-tx *conn*]       ; or (jdbc/with-db-connection [db-conn db-spec] ...)
             (jdbc/db-do-commands db-tx (format "insert into dummy (value, value2) values ( '%s', '%d' );" "mary" 11))))
-    (spyx (doall (jdbc/query *conn* ["select * from dummy;"] )))
   ))
 
 
