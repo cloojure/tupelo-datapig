@@ -85,7 +85,9 @@
     (spyx (jdbc/db-do-commands *conn*
             (format "create index %s__value on dummy (value) ;" name-str)))
     (spyx (jdbc/db-do-commands *conn* (format "insert into dummy (value, value2) values ( '%s', '%d' );" "joe" 11)))
+    (spyx *conn*)
     (spyx (jdbc/with-db-transaction [db-tx *conn*]       ; or (jdbc/with-db-connection [db-conn db-spec] ...)
+            (spyx db-tx)
             (jdbc/db-do-commands db-tx (format "insert into dummy (value, value2) values ( '%s', '%d' );" "mary" 22))))
   ))
 
