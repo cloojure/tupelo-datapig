@@ -53,17 +53,16 @@
 
 (deftest t-01
   (try
-    (spyx (drop-table :dummy))
+    (spyx (drop-table-force :dummy))
     (create-table :dummy)
     (let [result (into #{} (jdbc/query *conn* ["select * from dummy;"]))]
       (spyx result)
       (is (= result #{{:value "joe"   :value2 11}
                       {:value "mary"  :value2 22} })))
     (create-attribute :name :string "")
-    (spyx (jdbc/query *conn* ["select * from attr__name;"]))
+    (create-attribute :age  :int    "")
     (spyx (jdbc/query *conn* ["select * from eid_seq;"]))
-    (create-entity)
-    (create-entity)
+    (create-entity {:name "james" :age 44} )
     (catch Exception ex
       (do (spyx ex)
           (spyx (.getNextException ex))

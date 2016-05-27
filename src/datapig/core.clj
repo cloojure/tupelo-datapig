@@ -29,36 +29,48 @@
 
 (def type-map
   {:integer :int8
+   :int     :int8
+   :int8    :int8
    :string  :text
+   :float   :float8
    :double  :float8
    :decimal :numeric
    :numeric :numeric} )
 
+(defn attr-tbl-name [attr-kw]
+  (str "attr__" (name attr-kw)))
+
 (defn create-attribute
   [-attr -type -props]
   ; #todo validate name, type, props
-  (let [tbl-name  (str "attr__" (name -attr))
-        db-type      (type-map -type)
-        props-str -props ; #todo fix
-  ]
-    (spyx (jdbc/db-do-commands *conn*
-            (ddl/create-table tbl-name
-              [:eid :int8 "PRIMARY KEY"]
-              [:value db-type "not null"])))
-    (spyx (jdbc/db-do-commands *conn*
-            (format "create index %s__value on dummy (value) ;" tbl-name)))
+  (let [tbl-name  (attr-tbl-name -attr)
+        db-type   (type-map -type)
+        props-str -props]                                   ; #todo fix
+    (println "creating attr:" -attr "  db-type" db-type)
+    (jdbc/db-do-commands *conn*
+      (ddl/create-table tbl-name
+        [:eid :int8 "PRIMARY KEY"]
+        [:value db-type "not null"]))
+    (jdbc/db-do-commands *conn*
+      (format "create index %s__value on dummy (value) ;" tbl-name))
   ))
 
 (defn create-entity
   "Creates a new entity and returns the EID"
-  []
+  [ attrvals-map ]
   (let [eid (-> (jdbc/query *conn* ["select nextval('eid_seq');"])
               (only)
               (:nextval))]
     (jdbc/db-do-commands *conn* (format "insert into entity (eid) values (%d);" eid))
-    (spy :msg "create-entity:" eid)))
+    (spy :msg "create-entity:" eid)
+    (doseq [ [attr value] (vec attrvals-map )]
+      (println "attr=" attr "  value=" value)
+      (jdbc/db-do-commands *conn* (spyx (str "insert into " (attr-tbl-name attr)
+                                          " (eid, value) values ( '" eid "', '" value "' );")))
+    )
+  ))
 
-(defn drop-table [name-kw]
+(defn drop-table-force [name-kw]
   (let [name-str (name name-kw)]
     (println "Dropping table:" name-str)
     (spyx (jdbc/db-do-commands *conn* (str "drop table if exists " name-str)))))
@@ -79,7 +91,7 @@
 
 
 (defn load-pg []
-  (drop-table :dummy)
+  (drop-table-force :dummy)
   (create-table :dummy)
 )
 
