@@ -10,7 +10,6 @@
     [tupelo.misc :as tm]
     [tupelo.schema :as ts] )
   (:use tupelo.core )
-  (:import  com.mchange.v2.c3p0.ComboPooledDataSource )
 )
 
 (def db-spec
