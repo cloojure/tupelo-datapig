@@ -20,6 +20,7 @@
   (jdbc/db-do-commands *conn* (format "drop schema if exists %s cascade" ns-name)))
 
 (defn create-namespace [ns-name]
+  (println "creating namespace:" ns-name)
   (jdbc/db-do-commands *conn* (format "create schema %s" ns-name))
   (jdbc/db-do-commands *conn* (format "set search_path to %s" ns-name))
   (jdbc/db-do-commands *conn* "create sequence eid_seq")
@@ -40,6 +41,12 @@
 (defn attr-tbl-name [attr-kw]
   (str "attr__" (name attr-kw)))
 
+; #todo cardinality:
+;   one: unique eid in attr table: "unique (eid)"
+;   many:   set:  unique value in attr table: "unique (eid, value)"
+;           list: no restriction on dups
+;   ident: unique in whole table: "unique (value)"
+;   component: "on delete cascade"  (need "on delete restrict"?)
 (defn create-attribute
   [-attr -type -props]
   ; #todo validate name, type, props
@@ -49,11 +56,15 @@
     (println "creating attr:" -attr "  db-type" db-type)
     (jdbc/db-do-commands *conn*
       (ddl/create-table tbl-name
-        [:eid :int8 "PRIMARY KEY"]
-        [:value db-type "not null"]))
+        [:eid    :int8   "not null references entity (eid)"]
+        [:value  db-type "not null"] ))
     (jdbc/db-do-commands *conn*
-      (format "create index %s__value on dummy (value) ;" tbl-name))
+      ; #todo: strip off "attr__" part of index name?
+      (format "create index idx__%s__ev on %s (eid, value) ;" tbl-name tbl-name)
+      (format "create index idx__%s__ve on %s (value, eid) ;" tbl-name tbl-name))
   ))
+
+; #todo: can use transactions to implement tdp/with ?
 
 (defn create-entity
   "Creates a new entity and returns the EID"
