@@ -18,8 +18,8 @@
 (deftest t-01
   (spyx (drop-table :dummy))
   (try
-    (spyx (create-table :dummy))
-    (spyx (drop-table :dummy))
+    (create-table :dummy)
+    (drop-table :dummy)
     (catch Exception ex
       (do (spyx ex)
           (spyx (.getNextException ex))
