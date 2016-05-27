@@ -16,8 +16,14 @@
 (spyx *clojure-version*)
 
 (deftest t-01
-  (is true)
-)
+  (spyx (drop-table :dummy))
+  (try
+    (spyx (create-table :dummy))
+    (spyx (drop-table :dummy))
+    (catch Exception ex
+      (do (spyx ex)
+          (spyx (.getNextException ex))
+          (System/exit 1)))))
 
 #_(deftest pg-basic-t
   (prn 'pg-basic)
