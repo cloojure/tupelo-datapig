@@ -21,8 +21,8 @@
   "Programmatically sets the 'default_transaction_isolation' property for the database.
   May wish to set in /etc/postgresql/9.5/main/postgresql.conf"
   ; Affects subsequent sessions, but not current one.
-  (jdbc/db-do-commands *conn*
-    "ALTER DATABASE datapig SET default_transaction_isolation='serializable' ")
+  (jdbc/db-do-commands *conn* "ALTER DATABASE datapig
+                                SET default_transaction_isolation='serializable' ")
   ; Changes current session but not permanent
   (jdbc/db-do-commands *conn*  "SET default_transaction_isolation='serializable' "))
 
