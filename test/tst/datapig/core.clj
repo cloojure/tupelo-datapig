@@ -19,12 +19,11 @@
 
 (def datomic-uri "datomic:mem://tst.bond")      ; the URI for our test db
 
-(def testing-namespace "datapig")
+(def testing-namespace "tst")
 (def db-spec
   { :classname    "org.postgresql.Driver"
    :subprotocol  "postgresql"
-   :subname      "//localhost:5432/alan"    ; database="alan"
-   ;    :subname      "//localhost:5432/alan"    ; database="alan"
+   :subname      "//localhost:5432/datapig"    ; database="datapig"
 
    ; Not needed for a non-secure local database...
    ;    :user      "bilbo"
@@ -53,16 +52,19 @@
 
 (deftest t-01
   (try
-    (spyx (drop-table-force :dummy))
+    (drop-table-force :dummy)
     (create-table :dummy)
     (let [result (into #{} (jdbc/query *conn* ["select * from dummy;"]))]
       (spyx result)
       (is (= result #{{:value "joe"   :value2 11}
                       {:value "mary"  :value2 22} })))
+    (newline)
     (create-attribute :name :string "")
     (create-attribute :age  :int    "")
     (spyx (jdbc/query *conn* ["select * from eid_seq;"]))
+    (newline)
     (create-entity {:name "james" :age 44} )
+    (newline)
     (catch Exception ex
       (do (spyx ex)
           (spyx (.getNextException ex))

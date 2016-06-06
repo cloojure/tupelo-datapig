@@ -12,15 +12,27 @@
   (:use tupelo.core )
 )
 
-(def ^:dynamic *conn*)                  ; dynamic var to hold the db connection
+; #todo: can use transactions to implement tdp/with ?
 
-(defn drop-namespace [ns-name]
-  (jdbc/db-do-commands *conn* (format "drop schema if exists %s" ns-name)))
+; #todo need to always set this. how?
+(def ^:dynamic *conn*)  ; dynamic var to hold the db connection
+
+(defn set-transaction-isolation-serializable []
+  "Programmatically sets the 'default_transaction_isolation' property for the database.
+  May wish to set in /etc/postgresql/9.5/main/postgresql.conf"
+  ; Affects subsequent sessions, but not current one.
+  (jdbc/db-do-commands *conn*
+    "ALTER DATABASE datapig SET default_transaction_isolation='serializable' ")
+  ; Changes current session but not permanent
+  (jdbc/db-do-commands *conn*  "SET default_transaction_isolation='serializable' "))
+
 (defn drop-namespace-force [ns-name]
+  (println "drop-namespace-force:" ns-name)
   (jdbc/db-do-commands *conn* (format "drop schema if exists %s cascade" ns-name)))
 
 (defn create-namespace [ns-name]
-  (println "creating namespace:" ns-name)
+  (println "create-namespace:" ns-name)
+  (set-transaction-isolation-serializable)
   (jdbc/db-do-commands *conn* (format "create schema %s" ns-name))
   (jdbc/db-do-commands *conn* (format "set search_path to %s" ns-name))
   (jdbc/db-do-commands *conn* "create sequence eid_seq")
@@ -50,10 +62,11 @@
 (defn create-attribute
   [-attr -type -props]
   ; #todo validate name, type, props
+  (set-transaction-isolation-serializable)
   (let [tbl-name  (attr-tbl-name -attr)
         db-type   (type-map -type)
         props-str -props]                                   ; #todo fix
-    (println "creating attr:" -attr "  db-type" db-type)
+    (println "create-attribute:" -attr "  db-type" db-type)
     (jdbc/db-do-commands *conn*
       (ddl/create-table tbl-name
         [:eid    :int8   "not null references entity (eid)"]
@@ -64,56 +77,45 @@
       (format "create index idx__%s__ve on %s (value, eid) ;" tbl-name tbl-name))
   ))
 
-; #todo: can use transactions to implement tdp/with ?
+(s/defn drop-table-force
+  [table-name :- s/Keyword]
+  (let [name-str (name table-name)]
+    (println "drop-table-force:" name-str)
+    (jdbc/db-do-commands *conn* (str "drop table if exists " name-str))))
 
-(defn create-entity
+(s/defn create-table
+  [table-name :- s/Keyword]
+  (let [name-str (name table-name)]
+    (println "create-table:" name-str)
+    (jdbc/db-do-commands *conn*
+      (ddl/create-table table-name
+        [:value :text "PRIMARY KEY"]
+        [:value2 :int "not null"]))
+    (jdbc/db-do-commands *conn*
+      (format "create index %s__value on dummy (value) ;" name-str))
+    (jdbc/db-do-commands *conn* (format "insert into dummy (value, value2) values ( '%s', '%d' );" "joe" 11))
+    (spyx *conn*)
+    (jdbc/with-db-transaction [db-tx *conn*] ; or (jdbc/with-db-connection [db-conn db-spec] ...)
+      (spyx db-tx)
+      (jdbc/db-do-commands db-tx (format "insert into dummy (value, value2) values ( '%s', '%d' );" "mary" 22)))
+    ))
+
+(s/defn create-entity
   "Creates a new entity and returns the EID"
-  [ attrvals-map ]
+  [ attrvals :- ts/KeyMap ]
   (let [eid (-> (jdbc/query *conn* ["select nextval('eid_seq');"])
               (only)
               (:nextval))]
-    (jdbc/db-do-commands *conn* (format "insert into entity (eid) values (%d);" eid))
-    (spy :msg "create-entity:" eid)
-    (doseq [ [attr value] (vec attrvals-map )]
-      (println "attr=" attr "  value=" value)
-      (jdbc/db-do-commands *conn* (spyx (str "insert into " (attr-tbl-name attr)
-                                          " (eid, value) values ( '" eid "', '" value "' );")))
-    )
-  ))
+    (println "create-entity:" eid "  attrvals:" attrvals)
+    (jdbc/with-db-transaction [db-tx *conn*]
+      (jdbc/db-do-commands db-tx (format "insert into entity (eid) values (%d);" eid))
+      (doseq [[attr value] (vec attrvals)]
+        (println "attr=" attr "  value=" value)
+        (jdbc/db-do-commands db-tx (str "insert into " (attr-tbl-name attr)
+                                     " (eid, value) values ( '" eid "', '" value "' );"))))))
 
-(defn drop-table-force [name-kw]
-  (let [name-str (name name-kw)]
-    (println "Dropping table:" name-str)
-    (spyx (jdbc/db-do-commands *conn* (str "drop table if exists " name-str)))))
-
-(defn create-table [name-kw]
-  (let [name-str (name name-kw)]
-    (println "Creating table:" name-str)
-    (jdbc/db-do-commands *conn*
-      (ddl/create-table name-kw
-        [:value :text "PRIMARY KEY"]
-        [:value2 :int "not null"]))
-    (spyx (jdbc/db-do-commands *conn*
-            (format "create index %s__value on dummy (value) ;" name-str)))
-    (spyx (jdbc/db-do-commands *conn* (format "insert into dummy (value, value2) values ( '%s', '%d' );" "joe" 11)))
-    (spyx *conn*)
-    (spyx (jdbc/with-db-transaction [db-tx *conn*]       ; or (jdbc/with-db-connection [db-conn db-spec] ...)
-            (spyx db-tx)
-            (jdbc/db-do-commands db-tx (format "insert into dummy (value, value2) values ( '%s', '%d' );" "mary" 22))))
-  ))
-
-
-(defn load-pg []
-  (drop-table-force :dummy)
-  (create-table :dummy)
-)
 
 (defn -main []
   (println "-main enter")
-  (try
-    (load-pg)
-    (catch Exception ex
-      (do (spyx ex)
-          (spyx (.getNextException ex))
-          (System/exit 1)))))
+)
 
