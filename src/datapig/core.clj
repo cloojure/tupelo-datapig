@@ -35,7 +35,7 @@
   (set-transaction-isolation-serializable)
   (jdbc/db-do-commands *conn* (format "create schema %s" ns-name))
   (jdbc/db-do-commands *conn* (format "set search_path to %s" ns-name))
-  (jdbc/db-do-commands *conn* "create sequence eid_seq")
+  (jdbc/db-do-commands *conn* "create sequence seq__eid")
   (jdbc/db-do-commands *conn*
     (ddl/create-table :entity [:eid :int8 "PRIMARY KEY"]))
 ) ; #todo split out later
@@ -59,22 +59,25 @@
 ;           list: no restriction on dups
 ;   ident: unique in whole table: "unique (value)"
 ;   component: "on delete cascade"  (need "on delete restrict"?)
-(defn create-attribute
-  [-attr -type -props]
+(s/defn create-attribute
+  [attr :- s/Keyword
+   type :- s/Keyword
+   props :- s/Str ]
   ; #todo validate name, type, props
   (set-transaction-isolation-serializable)
-  (let [tbl-name  (attr-tbl-name -attr)
-        db-type   (type-map -type)
-        props-str -props]                                   ; #todo fix
-    (println "create-attribute:" -attr "  db-type" db-type)
+  (let [tbl-name  (attr-tbl-name attr)
+        attr-str  (name attr)
+        db-type   (type-map type)
+        props-str props]                                   ; #todo fix
+    (println "create-attribute:" attr "  db-type" db-type)
     (jdbc/db-do-commands *conn*
       (ddl/create-table tbl-name
-        [:eid    :int8   "not null references entity (eid)"]
-        [:value  db-type "not null"] ))
+        [:eid             :int8   "not null references entity (eid)"]
+        [(keyword attr)   db-type "not null"] ))
     (jdbc/db-do-commands *conn*
       ; #todo: strip off "attr__" part of index name?
-      (format "create index idx__%s__ev on %s (eid, value) ;" tbl-name tbl-name)
-      (format "create index idx__%s__ve on %s (value, eid) ;" tbl-name tbl-name))
+      (format "create index idx__%s__ev on %s (eid, %s) ;" tbl-name tbl-name attr-str)
+      (format "create index idx__%s__ve on %s (%s, eid) ;" tbl-name tbl-name attr-str))
   ))
 
 (s/defn drop-table-force
@@ -103,16 +106,17 @@
 (s/defn create-entity
   "Creates a new entity and returns the EID"
   [ attrvals :- ts/KeyMap ]
-  (let [eid (-> (jdbc/query *conn* ["select nextval('eid_seq');"])
+  (let [eid (-> (jdbc/query *conn* ["select nextval('seq__eid');"])
               (only)
               (:nextval))]
     (println "create-entity:" eid "  attrvals:" attrvals)
     (jdbc/with-db-transaction [db-tx *conn*]
       (jdbc/db-do-commands db-tx (format "insert into entity (eid) values (%d);" eid))
       (doseq [[attr value] (vec attrvals)]
-        (println "attr=" attr "  value=" value)
+        (let [attr-str (name attr)]
+        (println "attr=" attr-str "  value=" value)
         (jdbc/db-do-commands db-tx (str "insert into " (attr-tbl-name attr)
-                                     " (eid, value) values ( '" eid "', '" value "' );"))))))
+                                     " (eid, " attr-str ") values ( '" eid "', '" value "' );")))))))
 
 
 (defn -main []

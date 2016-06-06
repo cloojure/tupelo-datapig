@@ -61,8 +61,9 @@
     (newline)
     (create-attribute :name :string "")
     (create-attribute :age  :int    "")
-    (spyx (jdbc/query *conn* ["select * from eid_seq;"]))
+    (spyx (jdbc/query *conn* ["select * from seq__eid;"]))
     (newline)
+    (create-entity {:name "jesse" :age 33} )
     (create-entity {:name "james" :age 44} )
     (newline)
     (catch Exception ex
