@@ -26,19 +26,23 @@
   ; Changes current session but not permanent
   (jdbc/db-do-commands *conn*  "SET default_transaction_isolation='serializable' "))
 
-(defn drop-namespace-force [ns-name]
-  (println "drop-namespace-force:" ns-name)
-  (jdbc/db-do-commands *conn* (format "drop schema if exists %s cascade" ns-name)))
+(s/defn drop-namespace-force
+  [ns-name :- s/Keyword]
+  (let [ns-str (name ns-name)]
+    (println "drop-namespace-force:" ns-name)
+    (jdbc/db-do-commands *conn* (format "drop schema if exists %s cascade" ns-str))))
 
-(defn create-namespace [ns-name]
-  (println "create-namespace:" ns-name)
-  (set-transaction-isolation-serializable)
-  (jdbc/db-do-commands *conn* (format "create schema %s" ns-name))
-  (jdbc/db-do-commands *conn* (format "set search_path to %s" ns-name))
-  (jdbc/db-do-commands *conn* "create sequence seq__eid")
-  (jdbc/db-do-commands *conn*
-    (ddl/create-table :entity [:eid :int8 "PRIMARY KEY"]))
-) ; #todo split out later
+(s/defn create-namespace
+  [ns-name :- s/Keyword]
+  (let [ns-str (name ns-name)]
+    (println "create-namespace:" ns-name)
+    (set-transaction-isolation-serializable)
+    (jdbc/db-do-commands *conn* (format "create schema %s" ns-str))
+    (jdbc/db-do-commands *conn* (format "set search_path to %s" ns-str))
+    (jdbc/db-do-commands *conn* "create sequence seq__eid")
+    (jdbc/db-do-commands *conn*
+      (ddl/create-table :entity [:eid :int8 "PRIMARY KEY"])) ; #todo split out later
+  ))
 
 (def type-map
   {:integer :int8

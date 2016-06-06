@@ -19,7 +19,7 @@
 
 (def datomic-uri "datomic:mem://tst.bond")      ; the URI for our test db
 
-(def testing-namespace "tst")
+(def testing-namespace :tst)
 (def db-spec
   { :classname    "org.postgresql.Driver"
    :subprotocol  "postgresql"
@@ -40,7 +40,7 @@
       (binding [*conn* conn]  ; Bind connection to dynamic var
         (try
           (drop-namespace-force testing-namespace)
-          (create-namespace testing-namespace)
+          (create-namespace     testing-namespace)
           ; execute --------------------------------------------------------
           (tst-fn)
           ; teardown -------------------------------------------------------
