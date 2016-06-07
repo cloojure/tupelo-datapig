@@ -17,6 +17,19 @@
 ; #todo need to always set this. how?
 (def ^:dynamic *conn*)  ; dynamic var to hold the db connection
 
+(def type-map
+  {:integer :int8
+   :int     :int8
+   :int8    :int8
+   :string  :text
+   :float   :float8
+   :double  :float8
+   :decimal :numeric
+   :numeric :numeric} )
+
+(defn attr-tbl-name [attr-kw]
+  (str "attr__" (name attr-kw)))
+
 (defn set-transaction-isolation-serializable []
   "Programmatically sets the 'default_transaction_isolation' property for the database.
   May wish to set in /etc/postgresql/9.5/main/postgresql.conf"
@@ -43,19 +56,6 @@
     (jdbc/db-do-commands *conn*
       (ddl/create-table :entity [:eid :int8 "PRIMARY KEY"])) ; #todo split out later
   ))
-
-(def type-map
-  {:integer :int8
-   :int     :int8
-   :int8    :int8
-   :string  :text
-   :float   :float8
-   :double  :float8
-   :decimal :numeric
-   :numeric :numeric} )
-
-(defn attr-tbl-name [attr-kw]
-  (str "attr__" (name attr-kw)))
 
 ; #todo cardinality:
 ;   one: unique eid in attr table: "unique (eid)"
@@ -152,6 +152,29 @@
 -----+-------+-----
    1 | jesse |  33
 
-"
+> with  eids_1 as (select eid from attr__name)
+      , eids_2 as (select eid from attr__age where (age < 40))
+  select * from (
+    eids_1      natural join
+    eids_2      natural join
+    attr__name  natural join
+    attr__age );
 
-)
+> with  res_1 as (select * from ( attr__name  natural join
+                                  attr__age ) where (age < 40))
+      , res_2 as (select * from ( attr__name  natural join
+                                  attr__age ) where (age > 20))
+  select * from ( res_1
+    natural join  res_2 );
+
+> with  res_1 as (select * from ( attr__name  natural join
+                                  attr__age ) where (age < 40))
+  select * from res_1 where (age > 20);
+
+ eid |  name  | age
+-----+--------+-----
+   2 | bob    |  22
+   3 | carrie |  33
+
+
+" )
