@@ -129,24 +129,29 @@
 (comment
 "  *** All versions below work correctly *****
 
-> with eids as (select * from attr__age where age=33)
+> with eids as (select * from attr__age where (age=33))
     select * from ((attr__name natural join attr__age) natural join eids);
 
-> with eids as (select * from attr__age where age=33)
+> with eids as (select * from attr__age where (age=33))
     select * from ((eids natural join attr__name) natural join attr__age);
 
-> with eids as (select * from attr__age where age=33)
+> with eids as (select * from attr__age where (age=33))
     select * from (eids natural join (attr__name natural join attr__age));
+
+> select * from ( attr__name  natural join
+                  attr__age )
+           where (age < 40);
 
 > with eids as
     (select eid from attr__age where (age < 40))
-  select * from eids        natural join
-                attr__name  natural join
-                attr__age;
+  select * from ( eids        natural join
+                  attr__name  natural join
+                  attr__age );
 
  eid | name  | age
 -----+-------+-----
    1 | jesse |  33
+
 "
 
 )
