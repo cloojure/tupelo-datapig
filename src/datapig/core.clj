@@ -152,8 +152,8 @@
 -----+-------+-----
    1 | jesse |  33
 
-> with  eids_1 as (select eid from attr__name)
-      , eids_2 as (select eid from attr__age where (age < 40))
+> with  eids_1 as (select eid from attr__age where (age < 40))
+      , eids_2 as (select eid from attr__age where (age > 20))
   select * from (
     eids_1      natural join
     eids_2      natural join
@@ -169,7 +169,8 @@
 
 > with  res_1 as (select * from ( attr__name  natural join
                                   attr__age ) where (age < 40))
-  select * from res_1 where (age > 20);
+  select * from res_1 where (res_1.age > 20);
+
 
  eid |  name  | age
 -----+--------+-----
