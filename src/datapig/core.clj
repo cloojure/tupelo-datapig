@@ -177,5 +177,43 @@
    2 | bob    |  22
    3 | carrie |  33
 
+ARRAYS:
+  create  table ta ( xx int[] );
+  insert into ta values ( '{1,2,3}' );
+  insert into ta values ( array[2,3,4,5] );     ; *** preferred notation ***
+  select * from ta;
+        xx
+    -----------
+     {1,2,3}
+     {2,3,4,5}
+
+  select xx[1] from ta;    ; indexes are 1-based
+     xx
+    ----
+      1
+      2
+
+  select xx[1:2] from ta;  ; slices are [n:m] notation
+      xx
+    -------
+     {1,2}
+     {2,3}
+
+  select array_dims(xx) from ta;      ; returns dims for each element
+     array_dims
+    ------------
+     [1:3]
+     [1:4]
+
+  select array_length(xx,1) from ta;    ; returns dims for each element (needs ',1' part)
+      array_length
+    --------------
+                3
+                4
+  select cardinality(xx) from ta;     ; might be easier, but different for 2D arrays
+     cardinality
+    -------------
+               3
+               4
 
 " )
