@@ -30,6 +30,8 @@
    ;    :password  "secret"
    } )
 
+; #todo create database "datapig" if not exist; otherwise abort
+
 ;----------------------------------------------------------------------------
 ; clojure.test fixture: setup & teardown for each test
 (use-fixtures :each
